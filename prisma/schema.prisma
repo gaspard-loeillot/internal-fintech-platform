@@ -14,3 +14,40 @@ datasource db {
 // ── tool:refunds ──
 
 // ── tool:feature-flags ──
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String
+  enabled     Boolean
+  environment String // one of: dev, staging, prod
+  updatedAt   DateTime @updatedAt
+}
+
+model FeatureFlagChangeRequest {
+  id               String    @id @default(cuid())
+  flagId           String
+  requestedEnabled Boolean
+  reason           String
+  status           String // one of: pending, approved, rejected
+  requestedById    String
+  requestedByName  String
+  requestedByRole  String
+  decidedById      String?
+  decidedByName    String?
+  createdAt        DateTime  @default(now())
+  decidedAt        DateTime?
+}
+
+model FeatureFlagAudit {
+  id        String   @id @default(cuid())
+  event     String // one of: change_requested, change_approved, change_rejected
+  flagId    String
+  requestId String?
+  actorId   String
+  actorName String
+  actorRole String
+  reason    String?
+  createdAt DateTime @default(now())
+}
