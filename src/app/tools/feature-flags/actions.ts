@@ -33,8 +33,8 @@ export async function requestFlagChange(
   if (!flag) return { ok: false, error: 'Flag not found.' }
 
   const trimmed = reason.trim()
-  await prisma.$transaction([
-    prisma.featureFlagChangeRequest.create({
+  await prisma.$transaction(async (tx) => {
+    const request = await tx.featureFlagChangeRequest.create({
       data: {
         flagId,
         requestedEnabled,
@@ -44,18 +44,19 @@ export async function requestFlagChange(
         requestedByName: user.name,
         requestedByRole: user.role,
       },
-    }),
-    prisma.featureFlagAudit.create({
+    })
+    await tx.featureFlagAudit.create({
       data: {
         event: 'change_requested',
         flagId,
+        requestId: request.id,
         actorId: user.id,
         actorName: user.name,
         actorRole: user.role,
         reason: trimmed,
       },
-    }),
-  ])
+    })
+  })
 
   revalidatePath(PATH)
   return { ok: true }
