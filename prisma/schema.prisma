@@ -22,6 +22,7 @@ model FeatureFlag {
   description String
   enabled     Boolean
   environment String // one of: dev, staging, prod
+  rollout     Int // percentage of traffic, 0-100
   updatedAt   DateTime @updatedAt
 }
 
@@ -42,7 +43,7 @@ model FeatureFlagChangeRequest {
 
 model FeatureFlagAudit {
   id        String   @id @default(cuid())
-  event     String // one of: change_requested, change_approved, change_rejected
+  event     String // one of: change_requested, change_approved, change_rejected, flag.emergency_off
   flagId    String
   requestId String?
   actorId   String

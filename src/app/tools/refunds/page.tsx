@@ -1,4 +1,7 @@
 import StatusBadge, { type Tone } from '@/platform/StatusBadge'
+import PageHeader from '@/platform/PageHeader'
+import Table from '@/platform/Table'
+import { buttonSecondary, buttonSmall } from '@/platform/buttons'
 import { REFUNDS, REFUND_STATUSES, type RefundStatus } from './data'
 
 const STATUS_TONE: Record<RefundStatus, Tone> = {
@@ -18,19 +21,21 @@ export default async function RefundsPage({
   const rows = active ? REFUNDS.filter((row) => row.status === active) : REFUNDS
 
   return (
-    <div>
-      <h1 className="text-xl font-semibold">Refunds</h1>
-      <p className="mt-1 text-sm text-gray-600">
-        Read-only view of fake refund requests. This prototype cannot execute refunds.
-      </p>
+    <div className="space-y-6">
+      <PageHeader
+        title="Refunds"
+        description="Read-only view of fake refund requests. This prototype cannot execute refunds."
+      />
 
-      <form method="get" className="mt-4 flex items-center gap-2 text-sm">
-        <label htmlFor="status">Status</label>
+      <form method="get" className="flex items-center gap-2 text-sm">
+        <label htmlFor="status" className="text-gray-500">
+          Status
+        </label>
         <select
           id="status"
           name="status"
           defaultValue={active ?? ''}
-          className="rounded border border-gray-300 bg-transparent px-2 py-1"
+          className="cursor-pointer rounded-md border border-gray-300 bg-white px-2 py-1.5 transition-all duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
         >
           <option value="">All</option>
           {REFUND_STATUSES.map((option) => (
@@ -39,37 +44,45 @@ export default async function RefundsPage({
             </option>
           ))}
         </select>
-        <button type="submit" className="rounded border border-gray-300 px-2 py-1 hover:bg-gray-100">
+        <button type="submit" className={`${buttonSecondary} ${buttonSmall}`}>
           Filter
         </button>
       </form>
 
-      <table className="mt-4 w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-gray-300 text-left">
-            <th className="py-2 pr-3">Order ID</th>
-            <th className="py-2 pr-3">Customer</th>
-            <th className="py-2 pr-3">Amount</th>
-            <th className="py-2 pr-3">Reason</th>
-            <th className="py-2 pr-3">Status</th>
-            <th className="py-2">Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.orderId} className="border-b border-gray-200">
-              <td className="py-2 pr-3 font-mono text-xs">{row.orderId}</td>
-              <td className="py-2 pr-3">{row.customer}</td>
-              <td className="py-2 pr-3">${row.amount.toFixed(2)}</td>
-              <td className="py-2 pr-3 text-xs text-gray-600">{row.reason}</td>
-              <td className="py-2 pr-3">
-                <StatusBadge tone={STATUS_TONE[row.status]} label={row.status} />
-              </td>
-              <td className="py-2 text-xs text-gray-500">{row.date}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Table
+        columns={[
+          { header: 'Order ID' },
+          { header: 'Customer', sortable: true },
+          { header: 'Amount', sortable: true, align: 'right' },
+          { header: 'Reason' },
+          { header: 'Status' },
+          { header: 'Date', sortable: true },
+        ]}
+        empty="No refunds match this filter."
+        emptyHint="Clear the status filter to see every fake refund."
+        rows={rows.map((row) => ({
+          key: row.orderId,
+          sortValues: [null, row.customer, row.amount, null, null, new Date(row.date).getTime()],
+          cells: [
+            <span key="order" className="font-mono text-xs text-gray-900">
+              {row.orderId}
+            </span>,
+            <span key="customer" className="text-gray-900">
+              {row.customer}
+            </span>,
+            <span key="amount" className="text-gray-900">
+              ${row.amount.toFixed(2)}
+            </span>,
+            <span key="reason" className="text-xs text-gray-500">
+              {row.reason}
+            </span>,
+            <StatusBadge key="status" tone={STATUS_TONE[row.status]} label={row.status} />,
+            <span key="date" className="text-xs text-gray-500">
+              {row.date}
+            </span>,
+          ],
+        }))}
+      />
     </div>
   )
 }

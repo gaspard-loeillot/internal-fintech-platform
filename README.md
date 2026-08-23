@@ -1,8 +1,9 @@
 # Internal Fintech Platform (prototype)
 
 A demo internal platform: one complete feature-flag change workflow plus two read-only tools
-(Refunds, KYC Review) on a shared shell (nav, demo role switcher, status badges, action modal,
-audit history). All data is fake.
+(Refunds, KYC Review) on a shared shell (sidebar nav, demo role switcher, status badges, action
+modal, sortable table, audit history). Feature flags are the home page (`/`); each flag has its
+own page at `/tools/feature-flags/<key>`. All data is fake.
 
 ## Install & run
 
@@ -17,7 +18,7 @@ changes go through `npm run db:reset`.
 
 ## Demo path
 
-1. Open http://localhost:3000/tools/feature-flags. The role switcher in the nav starts as
+1. Open http://localhost:3000. The role switcher in the sidebar starts as
    **analyst** (Stephen Curry) — no request or decision buttons are offered.
 2. Switch to **ops** (Austin Reaves) and click "Request enable"/"Request disable" on a flag.
    Enter a reason of at least 10 characters and submit. A reason shorter than 10 characters is
@@ -32,6 +33,9 @@ changes go through `npm run db:reset`.
    `You cannot approve your own request.` inline in the modal, which stays open. (The same check
    fires if an admin tries to decide a request they created themselves.)
 6. Decide-once: approving/rejecting an already-decided request returns `Already decided.`
+7. Emergency off: as **admin**, open an enabled production flag (e.g. `ledger_read_replica`) and
+   click "Emergency off". With a valid reason the flag is disabled immediately with no approval
+   step and a `flag.emergency_off` audit entry (no request id) appears.
 
 ## What this prototype demonstrates
 
@@ -39,7 +43,9 @@ changes go through `npm run db:reset`.
 - Server-side enforcement of everything that matters: role permissions, reason length (10-300),
   self-approval prevention, and decide-once via a conditional `updateMany`.
 - Flag update and audit write happen inside one `prisma.$transaction` — both or neither.
-- An audit trail in the local database, rendered on the tool page and on `/audit`.
+- An audit trail in the local database, rendered on the home page, each flag page, and `/audit`,
+  with event and request ids as the first columns so a decision traces back to its request.
+- An admin-only emergency off for enabled production flags: same reason rules, no approval step.
 - A shared shell (registry-driven nav, role switcher, `StatusBadge`, `ActionModal`) that new
   tools plug into.
 

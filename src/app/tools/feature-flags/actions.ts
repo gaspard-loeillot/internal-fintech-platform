@@ -6,7 +6,11 @@ import { getCurrentUser } from '@/platform/auth'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
-const PATH = '/tools/feature-flags'
+// The flags workflow renders on the home page, the per-flag pages and the
+// global audit page, so revalidate the whole tree.
+function revalidateFlagViews() {
+  revalidatePath('/', 'layout')
+}
 
 function validateReason(reason: string): string | null {
   const trimmed = reason.trim()
@@ -58,7 +62,7 @@ export async function requestFlagChange(
     })
   })
 
-  revalidatePath(PATH)
+  revalidateFlagViews()
   return { ok: true }
 }
 
@@ -118,7 +122,41 @@ async function decide(
 
   if (!decided) return { ok: false, error: 'Already decided.' }
 
-  revalidatePath(PATH)
+  revalidateFlagViews()
+  return { ok: true }
+}
+
+export async function emergencyOffFlag(flagId: string, reason: string): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (user.role !== 'admin') {
+    return { ok: false, error: 'Only admin may trigger an emergency off.' }
+  }
+
+  const reasonError = validateReason(reason)
+  if (reasonError) return { ok: false, error: reasonError }
+
+  const flag = await prisma.featureFlag.findUnique({ where: { id: flagId } })
+  if (!flag) return { ok: false, error: 'Flag not found.' }
+  if (flag.environment !== 'prod' || !flag.enabled) {
+    return { ok: false, error: 'Emergency off applies to enabled production flags only.' }
+  }
+
+  const trimmed = reason.trim()
+  await prisma.$transaction(async (tx) => {
+    await tx.featureFlag.update({ where: { id: flagId }, data: { enabled: false } })
+    await tx.featureFlagAudit.create({
+      data: {
+        event: 'flag.emergency_off',
+        flagId,
+        actorId: user.id,
+        actorName: user.name,
+        actorRole: user.role,
+        reason: trimmed,
+      },
+    })
+  })
+
+  revalidateFlagViews()
   return { ok: true }
 }
 

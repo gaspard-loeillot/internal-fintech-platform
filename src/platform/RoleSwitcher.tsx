@@ -10,27 +10,28 @@ export default function RoleSwitcher({ role, name }: { role: Role; name: string 
   const router = useRouter()
 
   return (
-    <div className="text-right text-xs">
-      <label className="flex items-center justify-end gap-2">
-        <span className="font-medium">Acting as {name}</span>
-        <select
-          value={role}
-          disabled={pending}
-          onChange={(e) => {
-            const next = e.target.value as Role
-            startTransition(async () => {
-              await setRole(next)
-              router.refresh()
-            })
-          }}
-          className="rounded border border-gray-300 bg-transparent px-2 py-1"
-        >
-          <option value="analyst">analyst</option>
-          <option value="ops">ops</option>
-          <option value="admin">admin</option>
-        </select>
+    <div className="border-t border-gray-200 px-3 pt-4">
+      <label className="block text-xs font-medium text-gray-900" htmlFor="role-switcher">
+        Acting as {name}
       </label>
-      <p className="mt-1 text-gray-500">Demo identity - not production authentication</p>
+      <select
+        id="role-switcher"
+        value={role}
+        disabled={pending}
+        onChange={(e) => {
+          const next = e.target.value as Role
+          startTransition(async () => {
+            await setRole(next)
+            router.refresh()
+          })
+        }}
+        className="mt-1 w-full cursor-pointer rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm transition-all duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
+      >
+        <option value="analyst">analyst</option>
+        <option value="ops">ops</option>
+        <option value="admin">admin</option>
+      </select>
+      <p className="mt-2 text-xs text-gray-500">Demo identity - not production authentication</p>
     </div>
   )
 }

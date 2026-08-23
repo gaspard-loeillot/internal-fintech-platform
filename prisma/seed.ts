@@ -27,6 +27,7 @@ async function main() {
       description: 'Pay merchants out within minutes instead of nightly batches.',
       enabled: true,
       environment: 'dev',
+      rollout: 100,
     },
     {
       key: 'instant_payouts_prod',
@@ -34,6 +35,7 @@ async function main() {
       description: 'Production rollout of instant payouts.',
       enabled: false,
       environment: 'prod',
+      rollout: 0,
     },
     {
       key: 'new_refund_ui',
@@ -41,6 +43,7 @@ async function main() {
       description: 'Redesigned refund review screen for the ops team.',
       enabled: true,
       environment: 'staging',
+      rollout: 50,
     },
     {
       key: 'kyc_auto_clear',
@@ -48,6 +51,7 @@ async function main() {
       description: 'Auto-clear low-risk KYC cases without manual review.',
       enabled: false,
       environment: 'staging',
+      rollout: 0,
     },
     {
       key: 'fraud_scoring_v2',
@@ -55,6 +59,7 @@ async function main() {
       description: 'Second-generation transaction fraud scoring model.',
       enabled: true,
       environment: 'prod',
+      rollout: 25,
     },
     {
       key: 'sandbox_rate_limits',
@@ -62,6 +67,7 @@ async function main() {
       description: 'Apply per-key rate limits in the sandbox environment.',
       enabled: false,
       environment: 'dev',
+      rollout: 0,
     },
     {
       key: 'ledger_read_replica',
@@ -69,6 +75,7 @@ async function main() {
       description: 'Serve ledger reads from the replica database.',
       enabled: true,
       environment: 'prod',
+      rollout: 75,
     },
   ]
 
@@ -126,6 +133,32 @@ async function main() {
       actorRole: DEMO_USERS.ops.role,
       reason: secondPending.reason,
       createdAt: hoursAgo(20),
+    },
+  })
+
+  // Camera-ready self-approval demo: authored by admin, so admin is blocked.
+  const adminAuthored = await prisma.featureFlagChangeRequest.create({
+    data: {
+      flagId: flags.fraud_scoring_v2.id,
+      requestedEnabled: false,
+      reason: 'Demo row: request authored by the admin identity to show the self-approval block.',
+      status: 'pending',
+      requestedById: DEMO_USERS.admin.id,
+      requestedByName: DEMO_USERS.admin.name,
+      requestedByRole: DEMO_USERS.admin.role,
+      createdAt: hoursAgo(1),
+    },
+  })
+  await prisma.featureFlagAudit.create({
+    data: {
+      event: 'change_requested',
+      flagId: adminAuthored.flagId,
+      requestId: adminAuthored.id,
+      actorId: DEMO_USERS.admin.id,
+      actorName: DEMO_USERS.admin.name,
+      actorRole: DEMO_USERS.admin.role,
+      reason: adminAuthored.reason,
+      createdAt: hoursAgo(1),
     },
   })
 
