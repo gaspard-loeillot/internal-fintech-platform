@@ -1,0 +1,16 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Chassis models (S1) go here, above the tool markers.
+
+// ── tool:kyc-review ──
+
+// ── tool:refunds ──
+
+// ── tool:feature-flags ──

@@ -1,0 +1,14 @@
+name: ci
+on: [pull_request, push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx prisma db push --force-reset
+      - run: npx prisma db seed
+      - run: npm run build
