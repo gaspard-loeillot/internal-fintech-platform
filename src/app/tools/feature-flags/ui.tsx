@@ -253,7 +253,11 @@ export async function FeatureFlagsSection({ feature }: { feature: string }) {
     where: { status: 'pending', flagId: { in: flags.map((flag) => flag.id) } },
     orderBy: { createdAt: 'desc' },
   })
-  const pendingByFlagId = new Map(pending.map((request) => [request.flagId, request]))
+  // Newest pending request wins when a flag has more than one.
+  const pendingByFlagId = new Map<string, FeatureFlagChangeRequest>()
+  for (const request of pending) {
+    if (!pendingByFlagId.has(request.flagId)) pendingByFlagId.set(request.flagId, request)
+  }
 
   return (
     <section className="space-y-3">
