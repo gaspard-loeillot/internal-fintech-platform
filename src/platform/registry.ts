@@ -35,7 +35,7 @@ export const TOOLS: ToolEntry[] = [
     slug: 'feature-flags',
     name: 'Feature Flags',
     description: 'Request and approve feature-flag changes with an audit trail.',
-    href: '/tools/feature-flags',
+    href: '/',
     roles: ['analyst', 'ops', 'admin'],
   },
 ]
