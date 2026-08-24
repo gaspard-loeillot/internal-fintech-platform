@@ -46,6 +46,8 @@ changes go through `npm run db:reset`.
 - Flag update and audit write happen inside one `prisma.$transaction` — both or neither.
 - An audit trail in the local database, rendered on the home page, each flag page, and `/audit`,
   with event and request ids as the first columns so a decision traces back to its request.
+- The path to tools 2-13: full specs for complete Refunds and KYC tools are committed in
+  `docs/specs/`; the read-only pages preview them on the same shell.
 - An admin-only emergency off for enabled production flags: same reason rules, no approval step.
 - Feature-centric navigation: the flags table leads with the owning feature, and each feature page
   carries its own flags section with the same server rules.
@@ -63,5 +65,15 @@ changes go through `npm run db:reset`.
 
 ## Build record
 
-- Time spent: [TIME SPENT]
-- Corrections made: [CORRECTIONS MADE]
+- Time spent: ~1h30 of research and design before any build (what Power Apps actually sells,
+  the seat math, the platform thesis, the specs and prompts). The build itself was the easy part:
+  three Devin PRs, each ~10 minutes of agent work after the prompt was sent, plus ~1 minute of
+  automated diff review per PR. My review per PR: read Devin's plan before any code was written,
+  verify every rule on localhost including the ones that must fail, skim the load-bearing code
+  (server-side checks, the transaction). Exact per-session durations and compute are on the Devin
+  session pages.
+- Corrections made: at the plan stage of PR 1, I cut an over-planned page-layout framework and a
+  separate audit page before any code existed, and pinned the exact rejection messages. One known
+  rough edge, reported by Devin itself: the `Already decided.` message never displays in the UI
+  because the page refresh removes the pending row before the modal can show it; the server-side
+  protection holds. Logged instead of fixed, deliberately.
