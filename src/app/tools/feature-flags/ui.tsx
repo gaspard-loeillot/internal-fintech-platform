@@ -5,6 +5,9 @@ import StatusBadge, { type Tone } from '@/platform/StatusBadge'
 import ActionModal from '@/platform/ActionModal'
 import ShortId from '@/platform/ShortId'
 import Table from '@/platform/Table'
+import prisma from '@/platform/db'
+import { getCurrentUser } from '@/platform/auth'
+import { TOOLS } from '@/platform/registry'
 import { approveChangeRequest, emergencyOffFlag, rejectChangeRequest, requestFlagChange } from './actions'
 
 export const ENV_TONE: Record<string, Tone> = { dev: 'neutral', staging: 'info', prod: 'warning' }
@@ -24,8 +27,31 @@ export function formatDate(date: Date) {
   return date.toISOString().replace('T', ' ').slice(0, 16)
 }
 
+// Compact one-line stamp for narrow table cells: 08-23 23:34
+export function formatCompactDate(date: Date) {
+  return date.toISOString().slice(5, 16).replace('T', ' ')
+}
+
 export function flagHref(flag: { key: string }) {
   return `/tools/feature-flags/${flag.key}`
+}
+
+// Features are the internal tools; a feature links to its page when it has one.
+export function featureHref(feature: string) {
+  return TOOLS.find((tool) => tool.name === feature)?.href ?? null
+}
+
+export function FeatureLink({ feature }: { feature: string }) {
+  const href = featureHref(feature)
+  if (!href) return <span className="text-gray-900">{feature}</span>
+  return (
+    <Link
+      href={href}
+      className="rounded text-blue-600 transition-all duration-150 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+    >
+      {feature}
+    </Link>
+  )
 }
 
 export function EnabledBadge({ enabled }: { enabled: boolean }) {
@@ -70,6 +96,7 @@ export function FlagsTable({ flags, role }: { flags: FeatureFlag[]; role: Role }
   return (
     <Table
       columns={[
+        { header: 'Feature', sortable: true },
         { header: 'Key', sortable: true },
         { header: 'Name' },
         { header: 'Environment', sortable: true },
@@ -83,6 +110,7 @@ export function FlagsTable({ flags, role }: { flags: FeatureFlag[]; role: Role }
       rows={flags.map((flag) => ({
         key: flag.id,
         sortValues: [
+          flag.feature,
           flag.key,
           null,
           flag.environment,
@@ -92,13 +120,10 @@ export function FlagsTable({ flags, role }: { flags: FeatureFlag[]; role: Role }
           null,
         ],
         cells: [
-          <Link
-            key="key"
-            href={flagHref(flag)}
-            className="rounded font-mono text-xs text-blue-600 transition-all duration-150 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-          >
+          <FeatureLink key="feature" feature={flag.feature} />,
+          <span key="key" className="font-mono text-xs text-gray-900">
             {flag.key}
-          </Link>,
+          </span>,
           <span key="name" className="text-gray-900">
             {flag.name}
           </span>,
@@ -107,8 +132,8 @@ export function FlagsTable({ flags, role }: { flags: FeatureFlag[]; role: Role }
           <span key="rollout" className="text-gray-500">
             {flag.rollout}%
           </span>,
-          <span key="updated" className="text-xs text-gray-500">
-            {formatDate(flag.updatedAt)}
+          <span key="updated" className="whitespace-nowrap text-xs text-gray-500">
+            {formatCompactDate(flag.updatedAt)}
           </span>,
           <span key="actions" className="flex gap-2">
             {role === 'ops' ? (
@@ -121,6 +146,127 @@ export function FlagsTable({ flags, role }: { flags: FeatureFlag[]; role: Role }
         ],
       }))}
     />
+  )
+}
+
+// Flags owned by one feature, rendered below that feature's own data table.
+export function FeatureFlagsTable({
+  flags,
+  pendingByFlagId,
+  role,
+}: {
+  flags: FeatureFlag[]
+  pendingByFlagId: Map<string, FeatureFlagChangeRequest>
+  role: Role
+}) {
+  return (
+    <Table
+      columns={[
+        { header: 'Key', sortable: true },
+        { header: 'Name' },
+        { header: 'Environment', sortable: true },
+        { header: 'State' },
+        { header: 'Rollout', align: 'right' },
+        { header: 'Pending request' },
+        { header: 'Actions' },
+      ]}
+      empty="No feature flags for this feature."
+      emptyHint="Seed the database with npm run db:reset."
+      rows={flags.map((flag) => {
+        const pending = pendingByFlagId.get(flag.id)
+        const context = pending
+          ? `${flag.key} (${flag.environment}) -> ${
+              pending.requestedEnabled ? 'enabled' : 'disabled'
+            }, requested by ${pending.requestedByName}`
+          : ''
+        return {
+          key: flag.id,
+          sortValues: [flag.key, null, flag.environment, null, flag.rollout, null, null],
+          cells: [
+            <Link
+              key="key"
+              href={flagHref(flag)}
+              className="rounded font-mono text-xs text-blue-600 transition-all duration-150 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            >
+              {flag.key}
+            </Link>,
+            <span key="name" className="text-gray-900">
+              {flag.name}
+            </span>,
+            <StatusBadge
+              key="env"
+              tone={ENV_TONE[flag.environment] ?? 'neutral'}
+              label={flag.environment}
+            />,
+            <EnabledBadge key="state" enabled={flag.enabled} />,
+            <span key="rollout" className="text-gray-500">
+              {flag.rollout}%
+            </span>,
+            pending ? (
+              <span key="pending" className="flex items-center gap-2">
+                <StatusBadge tone="warning" label="pending" />
+                <EnabledBadge enabled={pending.requestedEnabled} />
+              </span>
+            ) : (
+              <span key="pending" className="text-xs text-gray-500">
+                none
+              </span>
+            ),
+            <span key="actions" className="flex gap-2">
+              {role === 'ops' && !pending && <RequestChangeAction flag={flag} />}
+              {role === 'admin' && pending && (
+                <>
+                  <ActionModal
+                    triggerLabel="Approve"
+                    title="Approve change request"
+                    context={context}
+                    confirmLabel="Approve"
+                    variant="primary"
+                    action={approveChangeRequest.bind(null, pending.id)}
+                  />
+                  <ActionModal
+                    triggerLabel="Reject"
+                    title="Reject change request"
+                    context={context}
+                    confirmLabel="Reject"
+                    action={rejectChangeRequest.bind(null, pending.id)}
+                  />
+                </>
+              )}
+              {canEmergencyOff(flag, role) && <EmergencyOffAction flag={flag} />}
+            </span>,
+          ],
+        }
+      })}
+    />
+  )
+}
+
+// Drop-in section for a feature's own page.
+export async function FeatureFlagsSection({ feature }: { feature: string }) {
+  const user = await getCurrentUser()
+  const flags = await prisma.featureFlag.findMany({
+    where: { feature },
+    orderBy: [{ environment: 'asc' }, { key: 'asc' }],
+  })
+  const pending = await prisma.featureFlagChangeRequest.findMany({
+    where: { status: 'pending', flagId: { in: flags.map((flag) => flag.id) } },
+    orderBy: { createdAt: 'desc' },
+  })
+  // Newest pending request wins when a flag has more than one.
+  const pendingByFlagId = new Map<string, FeatureFlagChangeRequest>()
+  for (const request of pending) {
+    if (!pendingByFlagId.has(request.flagId)) pendingByFlagId.set(request.flagId, request)
+  }
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-sm font-semibold text-gray-900">Feature flags</h2>
+      <p className="text-sm text-gray-500">
+        Flags that belong to {feature}. Same request and approval rules as the flags home page.
+      </p>
+      <FeatureFlagsTable flags={flags} pendingByFlagId={pendingByFlagId} role={user.role} />
+    </section>
   )
 }
 

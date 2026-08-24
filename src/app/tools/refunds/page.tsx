@@ -2,7 +2,10 @@ import StatusBadge, { type Tone } from '@/platform/StatusBadge'
 import PageHeader from '@/platform/PageHeader'
 import Table from '@/platform/Table'
 import { buttonSecondary, buttonSmall } from '@/platform/buttons'
+import { FeatureFlagsSection } from '../feature-flags/ui'
 import { REFUNDS, REFUND_STATUSES, type RefundStatus } from './data'
+
+export const dynamic = 'force-dynamic'
 
 const STATUS_TONE: Record<RefundStatus, Tone> = {
   requested: 'warning',
@@ -21,7 +24,7 @@ export default async function RefundsPage({
   const rows = active ? REFUNDS.filter((row) => row.status === active) : REFUNDS
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <PageHeader
         title="Refunds"
         description="Read-only view of fake refund requests. This prototype cannot execute refunds."
@@ -83,6 +86,8 @@ export default async function RefundsPage({
           ],
         }))}
       />
+
+      <FeatureFlagsSection feature="Refunds" />
     </div>
   )
 }

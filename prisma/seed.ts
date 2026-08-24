@@ -20,62 +20,61 @@ async function main() {
   // ── tool:refunds ──
 
   // ── tool:feature-flags ──
+  // Every flag belongs to one of the internal tools (its feature).
   const flagSeeds = [
     {
-      key: 'instant_payouts',
-      name: 'Instant payouts',
-      description: 'Pay merchants out within minutes instead of nightly batches.',
-      enabled: true,
-      environment: 'dev',
-      rollout: 100,
-    },
-    {
-      key: 'instant_payouts_prod',
-      name: 'Instant payouts (prod)',
-      description: 'Production rollout of instant payouts.',
-      enabled: false,
-      environment: 'prod',
-      rollout: 0,
-    },
-    {
-      key: 'new_refund_ui',
-      name: 'New refund UI',
+      key: 'refund_ui_v2',
+      name: 'Refund UI v2',
+      feature: 'Refunds',
       description: 'Redesigned refund review screen for the ops team.',
       enabled: true,
       environment: 'staging',
       rollout: 50,
     },
     {
+      key: 'refund_status_filter',
+      name: 'Status filter',
+      feature: 'Refunds',
+      description: 'Filter the refunds table by status.',
+      enabled: true,
+      environment: 'dev',
+      rollout: 100,
+    },
+    {
+      key: 'refund_bulk_export',
+      name: 'Bulk export',
+      feature: 'Refunds',
+      description: 'Export the filtered refunds table as a CSV file.',
+      enabled: false,
+      environment: 'prod',
+      rollout: 0,
+    },
+    {
       key: 'kyc_auto_clear',
       name: 'KYC auto-clear',
+      feature: 'KYC Review',
       description: 'Auto-clear low-risk KYC cases without manual review.',
       enabled: false,
       environment: 'staging',
       rollout: 0,
     },
     {
-      key: 'fraud_scoring_v2',
-      name: 'Fraud scoring v2',
-      description: 'Second-generation transaction fraud scoring model.',
+      key: 'kyc_risk_scoring_v2',
+      name: 'Risk scoring v2',
+      feature: 'KYC Review',
+      description: 'Second-generation risk scoring model for KYC cases.',
       enabled: true,
       environment: 'prod',
       rollout: 25,
     },
     {
-      key: 'sandbox_rate_limits',
-      name: 'Sandbox rate limits',
-      description: 'Apply per-key rate limits in the sandbox environment.',
-      enabled: false,
-      environment: 'dev',
-      rollout: 0,
-    },
-    {
-      key: 'ledger_read_replica',
-      name: 'Ledger read replica',
-      description: 'Serve ledger reads from the replica database.',
+      key: 'kyc_doc_upload_v2',
+      name: 'Document upload v2',
+      feature: 'KYC Review',
+      description: 'Rebuilt document upload flow for KYC onboarding.',
       enabled: true,
-      environment: 'prod',
-      rollout: 75,
+      environment: 'dev',
+      rollout: 100,
     },
   ]
 
@@ -88,9 +87,9 @@ async function main() {
   // Camera-ready pending request: created by ops, so admin can approve it live.
   const pending = await prisma.featureFlagChangeRequest.create({
     data: {
-      flagId: flags.instant_payouts_prod.id,
+      flagId: flags.refund_bulk_export.id,
       requestedEnabled: true,
-      reason: 'Instant payouts passed staging soak test; enable for the pilot merchants.',
+      reason: 'Finance needs refund exports for the monthly reconciliation; enable in prod.',
       status: 'pending',
       requestedById: DEMO_USERS.ops.id,
       requestedByName: DEMO_USERS.ops.name,
@@ -113,9 +112,9 @@ async function main() {
 
   const secondPending = await prisma.featureFlagChangeRequest.create({
     data: {
-      flagId: flags.sandbox_rate_limits.id,
-      requestedEnabled: true,
-      reason: 'Sandbox abuse from a single API key; turn on rate limits.',
+      flagId: flags.kyc_doc_upload_v2.id,
+      requestedEnabled: false,
+      reason: 'Upload failures reported on large PDFs; turn the new flow off in dev.',
       status: 'pending',
       requestedById: DEMO_USERS.ops.id,
       requestedByName: DEMO_USERS.ops.name,
@@ -139,7 +138,7 @@ async function main() {
   // Camera-ready self-approval demo: authored by admin, so admin is blocked.
   const adminAuthored = await prisma.featureFlagChangeRequest.create({
     data: {
-      flagId: flags.fraud_scoring_v2.id,
+      flagId: flags.kyc_risk_scoring_v2.id,
       requestedEnabled: false,
       reason: 'Demo row: request authored by the admin identity to show the self-approval block.',
       status: 'pending',
@@ -164,7 +163,7 @@ async function main() {
 
   const approved = await prisma.featureFlagChangeRequest.create({
     data: {
-      flagId: flags.new_refund_ui.id,
+      flagId: flags.refund_ui_v2.id,
       requestedEnabled: true,
       reason: 'Ops sign-off complete; enable the new refund UI in staging.',
       status: 'approved',
