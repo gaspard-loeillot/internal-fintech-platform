@@ -2,7 +2,10 @@ import StatusBadge, { type Tone } from '@/platform/StatusBadge'
 import PageHeader from '@/platform/PageHeader'
 import Table from '@/platform/Table'
 import { buttonSecondary, buttonSmall } from '@/platform/buttons'
+import { FeatureFlagsSection } from '../feature-flags/ui'
 import { KYC_CASES, KYC_RISK_LEVELS, type KycReviewStatus, type KycRiskLevel } from './data'
+
+export const dynamic = 'force-dynamic'
 
 const RISK_TONE: Record<KycRiskLevel, Tone> = {
   low: 'success',
@@ -29,7 +32,7 @@ export default async function KycReviewPage({
   const rows = active ? KYC_CASES.filter((row) => row.riskLevel === active) : KYC_CASES
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <PageHeader
         title="KYC Review"
         description="Read-only view of fake KYC cases. This prototype has no documents and no case actions."
@@ -96,6 +99,8 @@ export default async function KycReviewPage({
           ],
         }))}
       />
+
+      <FeatureFlagsSection feature="KYC Review" />
     </div>
   )
 }

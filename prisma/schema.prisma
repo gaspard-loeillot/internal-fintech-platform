@@ -19,6 +19,7 @@ model FeatureFlag {
   id          String   @id @default(cuid())
   key         String   @unique
   name        String
+  feature     String // display name of the owning tool: Refunds, KYC Review
   description String
   enabled     Boolean
   environment String // one of: dev, staging, prod

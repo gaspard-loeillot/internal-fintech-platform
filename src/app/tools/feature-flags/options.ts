@@ -1,4 +1,5 @@
 export const FLAG_ENVIRONMENTS = ['dev', 'staging', 'prod'] as const
+export const FLAG_FEATURES = ['Refunds', 'KYC Review'] as const
 export const CHANGE_REQUEST_STATUSES = ['pending', 'approved', 'rejected'] as const
 export const AUDIT_EVENTS = [
   'change_requested',
@@ -8,5 +9,6 @@ export const AUDIT_EVENTS = [
 ] as const
 
 export type FlagEnvironment = (typeof FLAG_ENVIRONMENTS)[number]
+export type FlagFeature = (typeof FLAG_FEATURES)[number]
 export type ChangeRequestStatus = (typeof CHANGE_REQUEST_STATUSES)[number]
 export type AuditEvent = (typeof AUDIT_EVENTS)[number]
